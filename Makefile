@@ -1,7 +1,6 @@
 
-
 export CFLAGS := -Wall -Wextra -pedantic -Weffc++
-LIB_NAME := lib_emulator.a
+export LIB_NAME := lib_emulator.a
 
 ifdef DEBUG
 CFLAGS := ${CFLAGS} -ggdb

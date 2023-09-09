@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <memory>
 #include <pthread.h>
 #include <stdexcept>
 #include <stdint.h>
@@ -21,21 +22,26 @@ class IO
   std::bitset<4> Byte2BCD();
 };
 
+// @BLOAT I don't understarnd but it works without it
 typedef struct MemWordPos{
+  private:
   Word& littleEndianMem; // lest significant byte in littleEndin, THE LEFT ONE
+  public:
   MemWordPos(Byte& less):littleEndianMem{(Word&)less}{}
   
   template<class T> T operator=(T) = delete;
   Word operator=(Word w){ // unpack bigEndian to LittleEndian
-    littleEndianMem = w<<8; // this overwrites the entire Word
-    littleEndianMem|= w>>8; // this to above
+    // littleEndianMem = w<<8; // this overwrites the entire Word
+    // littleEndianMem|= w>>8; // this to above
+    littleEndianMem = w;
     return w;
   }
   operator Word() const{ // convertion operator
-    Word res; 
-    res = littleEndianMem<<8; // this overwrites the entire Word
-    res|= littleEndianMem>>8;   // this to above
-    return res;
+    return littleEndianMem;
+    // Word res; 
+    // res = littleEndianMem<<8; // this overwrites the entire Word
+    // res|= littleEndianMem>>8;   // this to above
+    // return res;
   }
 } MemWordPos;
 
@@ -43,7 +49,7 @@ struct CPU;
 
 class OpcodeTrie : public BitTrie<std::function<void(CPU*, Word opcode)>>
 {
-  public:
+public:
   void call(CPU& cpu, Word opcode)
   {
     auto ins = find<8>({opcode});
@@ -53,6 +59,9 @@ class OpcodeTrie : public BitTrie<std::function<void(CPU*, Word opcode)>>
       std::__invoke(*ins, &cpu, opcode);
   }
 
+  
+
+public:
   [[deprecated("not implemented yet")]]
   void addGeneral(const char opcode[8])
   {
@@ -63,10 +72,11 @@ class OpcodeTrie : public BitTrie<std::function<void(CPU*, Word opcode)>>
     // 00110111
     // ...
     // 00111111
-    for(int i=0;i<0;i++)
+    
+    for(int i=0;i<8;i++)
     {
       // if(opcode[i] == '*')
-      
+       
     }
   }
 
@@ -104,10 +114,10 @@ private:
   // 
 
 public:
-  MemWordPos getWord(uint32_t i)
+  Word& getWord(uint32_t i)
   {
     if(i>=MAX_MEM) throw std::out_of_range("[MEMORY] Invalid memory address");
-    return {Data[i]};
+    return reinterpret_cast<Word&>(Data[i]);
   }
 
   void Load(std::ifstream& file, uint32_t offset=0){
@@ -160,9 +170,13 @@ public:
     Word mark_WordAdd(Word a, Word b, Bit c=0);
     template<class T> Byte mark_WordAdd(T, T, Bit=0) = delete;
     
+    Word mark_WordSub(Word a, Word b, Bit c=0);
+    
     Byte mark_ByteAdd(Byte a, Byte b, Bit c=0);
     template<class T> Byte mark_ByteAdd(T,T,Bit=0) = delete;
 
+    Byte mark_ByteSub(Byte a, Byte b, Bit c=0);
+    
     Word mark_WordInc(Word a, Word c=1);
     // Same as Add but without CF
     Byte mark_ByteInc(Byte a, Byte c=1);
@@ -195,7 +209,8 @@ public:
       {0b0101'0, &CPU::PUSH_reg},
       {0b0101'1, &CPU::POP_reg},       
       {0b1001'0, &CPU::XCHG_ac_reg},
-      {0b0100'0, &CPU::INC_reg16}
+      {0b0100'0, &CPU::INC_reg16},
+      {0b0100'1, &CPU::DEC_reg16},
     });
     // 6 bit
     opcodeInstructions.add<6>({
@@ -207,7 +222,8 @@ public:
       {0b1000'00, &CPU::ADD_ADC_SUB_SBB_memORreg_imm},//
       {0b0001'00, &CPU::ADC_memORreg_reg},
       {0b0010'10, &CPU::SUB_memORreg_reg},
-      // {0b1000'00, &CPU::SUB_memORreg_imm}//c
+      {0b0001'10, &CPU::SBB_memORreg_reg},
+      {0b0011'10, &CPU::CMP_memregORregmem},
     });
 
     opcodeInstructions.add<7>({
@@ -218,8 +234,11 @@ public:
       {0b1110'011, &CPU::OUT_addr},
       {0b0000'010, &CPU::ADD_ac_imm},
       {0b0001'010, &CPU::ADC_ac_imm},
-      {0b1111'111, &CPU::INC_memORreg8},
-      {0b1000'110, &CPU::SUB_ac_imm}
+      {0b1111'111, &CPU::INC_DEC_memORreg8},
+      {0b1000'110, &CPU::SUB_ac_imm},
+      {0b0001'110, &CPU::SBB_ac_imm},
+      {0b1111'011, &CPU::NEG_regORmem},
+      {0b0011'110, &CPU::CMP_ac_imm},
     });
     
     opcodeInstructions.add<8>({
@@ -235,8 +254,16 @@ public:
       {0b000'10'111, &CPU::POP_SS},
       {0b000'11'111, &CPU::POP_DS},
       {0b1101'0111, &CPU::XLAT},
+      {0b1000'1101, &CPU::LEA},
+      {0b1100'0101, &CPU::LDS},
+      {0b1100'0100, &CPU::LES},
+      {0b1001'1111, &CPU::LAHF},
+      {0b1001'1110, &CPU::SAHF},
+      {0b1001'1100, &CPU::PUSHF},
+      {0b1001'1101, &CPU::POPF},
       {0b0011'0111, &CPU::AAA},
       {0b0010'0111, &CPU::DAA},
+
     });
 
   }
@@ -253,22 +280,22 @@ public:
   void MOV_reg_imm(Word);
 
   // pushes
-  void PUSHF(Word);
   void PUSH_reg(Word);
   void PUSH_mem(Word);
   void PUSH_ES(Word); 
   void PUSH_CS(Word); 
   void PUSH_SS(Word);
   void PUSH_DS(Word); 
+  void PUSHF(Word);
 
   // popes
-  void POPF(Word);
   void POP_reg(Word);
   void POP_mem(Word);
   void POP_ES(Word); 
   void POP_CS(Word); 
   void POP_SS(Word);
   void POP_DS(Word); 
+  void POPF(Word);
 
   // XCHG (exchage byte or word)
   void XCHG_ac_reg(Word);
@@ -286,10 +313,8 @@ public:
 
   // LEA (load effective address)
   void LEA(Word);
-
   // LDS (load data segment register)
   void LDS(Word);
-
   // LES (load extra segment register)
   void LES(Word);
 
@@ -310,7 +335,7 @@ public:
 
   // INC
   void INC_reg16(Word);
-  void INC_memORreg8(Word);
+  void INC_DEC_memORreg8(Word);
 
   // AAA (asci adjust for addition)
   void AAA(Word);
@@ -325,8 +350,21 @@ public:
   // SBB (subtract byte or word with borrow)
   void SBB_memORreg_reg(Word);
   void SBB_ac_imm(Word);
+  void SBB_mem_imm(Word, Byte);
+
+  // DEC (decrement)
+  void DEC_reg16(Word);
   
-  
+  // LOGICAL
+
+  // NEG
+  void NEG_regORmem(Word);
+
+  void CMP_memregORregmem(Word);
+  void CMP_ac_imm(Word);
+  void CMP_reg_mem(Word);
+  void CMP_reg_imm(Word, Byte);
+  void CMP_mem_imm(Word, Byte);
   
   void Reset()
   {
@@ -338,10 +376,10 @@ public:
   {
     std::cout.setf(std::ios::hex, std::ios::basefield);
     std::cout.setf(std::ios::uppercase);
-    std::cout << "AX: " << std::bitset<16>(AX) << ": 0x"<< AX << '\n';
-    std::cout << "BX: " << std::bitset<16>(BX) << ": 0x"<< BX << '\n';
-    std::cout << "CX: " << std::bitset<16>(CX) << ": 0x"<< CX << '\n';
-    std::cout << "DX: " << std::bitset<16>(DX) << ": 0x"<< DX << '\n';
+    std::cout << "AX: " << std::bitset<16>(AX) << ": 0x"<< AX << " (" << "AL:0x" << +AL << ", AH:0x" << +AH << ")" << '\n';
+    std::cout << "BX: " << std::bitset<16>(BX) << ": 0x"<< BX << " (" << "BL:0x" << +BL << ", BH:0x" << +BH << ")" << '\n';
+    std::cout << "CX: " << std::bitset<16>(CX) << ": 0x"<< CX << " (" << "CL:0x" << +CL << ", CH:0x" << +CH << ")" << '\n';
+    std::cout << "DX: " << std::bitset<16>(DX) << ": 0x"<< DX << " (" << "DL:0x" << +DL << ", DH:0x" << +DH << ")" << '\n';
     
     std::cout << "SP: " << std::bitset<16>(SP) << ": 0x"<< SP << '\n';
     std::cout << "BP: " << std::bitset<16>(BP) << ": 0x"<< BP << '\n';
@@ -515,7 +553,7 @@ private:
 
   Byte FetchByte()
   {
-    // cycles--;
+    // c(ycles--;
     return mem[physicalAddr(CS, IP++)];
   }
   Word FetchWord()

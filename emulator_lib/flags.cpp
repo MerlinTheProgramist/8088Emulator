@@ -25,8 +25,20 @@ Word CPU::Flags_t::mark_WordAdd(Word a, Word b, Bit c){
   return res;
 }
 
+// OF SF ZF AF PF CF
+Word CPU::Flags_t::mark_WordSub(Word a, Word b, Bit c){
+  Word res = a-b-c;
+  OF = ((sWord)a<0 && (sWord)b<0 && (sWord)res>0) /*underflow*/ || ((sWord)a>0 && (sWord)b>0 && (sWord)res<0);
+  SF = (sWord)res < 0;
+  ZF = (res == 0);
+  AF = (res & NIB_MASK) < (a & NIB_MASK);
+  PF = getWordParity(res);
+  CF = (res < a); 
+  return res;
+}
+
 Byte CPU::Flags_t::mark_ByteAdd(Byte a, Byte b, Bit c){
-  Byte res = b+c;
+  Byte res = a+b+c;
   OF = ((sByte)a<0 && (sByte)b<0 && (sByte)res>0) /*underflow*/ || ((sByte)a>0 && (sByte)b>0 && (sByte)res<0);
   SF = (sByte)res < 0;
   ZF = (res == 0);
@@ -36,6 +48,18 @@ Byte CPU::Flags_t::mark_ByteAdd(Byte a, Byte b, Bit c){
   return res; 
 }
 
+Byte CPU::Flags_t::mark_ByteSub(Byte a, Byte b, Bit c){
+  Byte res = a-b-c;
+  OF = ((sByte)a<0 && (sByte)b<0 && (sByte)res>0) /*underflow*/ || ((sByte)a>0 && (sByte)b>0 && (sByte)res<0);
+  SF = (sByte)res < 0;
+  ZF = (res == 0);
+  AF = (res & NIB_MASK) < (a & NIB_MASK);
+  PF = getByteParity(res);
+  CF = (res < a);
+  return res; 
+}
+
+// Same as Add but without CF
 Word CPU::Flags_t::mark_WordInc(Word a, Word c){
   Word res = a+c;
   OF = ((sWord)a<0 && (sWord)res>0) /*underflow*/ || ((sWord)a>0 && (sWord)res<0);

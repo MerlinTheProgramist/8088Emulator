@@ -1,5 +1,6 @@
 #include "8088CPU.h"
 #include "consts.h"
+#include "macros.h"
 
 #include <bitset>
 
@@ -11,7 +12,7 @@ void CPU::MOVS(Word opcode){
   uint32_t dest = physicalAddr(ES, DI);
   
   if(word)
-    mem.getWord(dest) = mem.getWord(src);
+    mem.getWord(dest) = (Word)mem.getWord(src);
   else
     mem[dest] = mem[src];
     
@@ -32,12 +33,22 @@ void CPU::MOV_reg(Word opcode){
 
   Byte arg = FetchByte();
   if(word){
-    Word& place = (arg>>6 == 0b11)? getWordReg(arg) : mem.getWord(calcAddr(arg >> 6, arg));
-    Word& reg = getWordReg(opcode >> 3);
-    if(!dir)
-      reg = place;
-    else
-      place = reg;
+    REG_OR_MEM(arg){
+      Word& place = getWordReg(arg);
+      Word& reg = getWordReg(opcode >> 3);
+      if(!dir)
+        reg = place;
+      else
+        place = reg;
+    }else{
+      auto&& place{mem.getWord(calcAddr(arg >> 6, arg))};
+      Word& reg = getWordReg(opcode >> 3);
+      if(!dir)
+        reg = place;
+      else
+        place = reg;
+    }
+    
   }else{
     Byte& place = (arg>>6 == 0b11)? getByteReg(arg) : mem.getByte(calcAddr(arg >> 6, arg));
     Byte& reg = getByteReg(opcode >> 3);
@@ -49,23 +60,36 @@ void CPU::MOV_reg(Word opcode){
   
 }
 
+// REG_OR_MEM(arg){
+  // Word& place = getWordReg(arg);
+
+// }else{
+  // MemWordPos place{mem.getWord(calcAddr(arg >> 6, arg))};
+  
+
 void CPU::MOV_seg(Word opcode){
   std::cout << "call: " << __func__ << std::endl;
   bool dir = opcode & DIR_MASK;
-
-  Byte arg = FetchByte();
-  
-  Word& place = (arg>>6 == 0b11)? getWordReg(arg) : mem.getWord(calcAddr(arg >> 6, arg));
- 
+  Byte arg = FetchByte(); 
   Word& segreg = getSegReg(arg >> 3);
-
   if(segreg == CS)
     std::cerr << "[ERROR] MOV segreg can't access CS register" << std::endl;
-  
+
+REG_OR_MEM(arg){
+  Word& place = getWordReg(arg);  
   if(!dir)// 8E
     segreg = place;
   else // 8C
     place = segreg;
+
+}else{
+  auto&& place{mem.getWord(calcAddr(arg >> 6, arg))};
+  if(!dir)// 8E
+    segreg = place;
+  else // 8C
+    place = segreg;
+}
+  
 }
 
 void CPU::MOV_ac_mem(Word opcode){
@@ -74,7 +98,7 @@ void CPU::MOV_ac_mem(Word opcode){
   bool dir = opcode & 0b0000'0010;
   if(word)
   {
-    Word& word = mem.getWord(FetchWord());
+    auto&& word = mem.getWord(physicalAddr(DS, FetchWord()));
     if(!dir) // ac <- mem
       AX = word;
     else 
@@ -82,7 +106,7 @@ void CPU::MOV_ac_mem(Word opcode){
   }
   else
   {
-    Byte& byte = mem[FetchWord()];
+    Byte& byte = mem[physicalAddr(DS, FetchWord())];
     if(dir == 0) // ac <- mem
       AL = byte;
     else
@@ -175,9 +199,34 @@ void CPU::XCHG_ac_reg(Word op){
 void CPU::XCHG_reg_memORreg(Word op){
   std::cout << "call: " << __func__ << std::endl;
   Byte arg = FetchByte();
+
+  // Branch to CMP 
+  if((op&0b0000'0100) == 1)
+  {
+    CPU::CMP_mem_imm(op, arg);
+    return;
+  }
+  
+  // Branch to SBB instead
+  if(arg>>6!=0b11)
+  {
+    CPU::SBB_mem_imm(op, arg);
+    return;
+  } 
+  
   if(op & WORD_MASK)
-    std::swap((arg>>6==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg)), getWordReg(arg>>3));
-  else
+  {
+    auto reg2 = getWordReg(arg>>3);
+    REG_OR_MEM(arg)
+      std::swap(getWordReg(arg), reg2);
+    else
+    {
+      auto&& mem_pos = mem.getWord(calcAddr(arg>>6, arg));
+      auto temp = reg2;
+      reg2 = mem_pos;
+      mem_pos = temp;
+    }
+  }else
     std::swap((arg>>6==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg)), getByteReg(arg>>3));
 }
 

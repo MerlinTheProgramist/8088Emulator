@@ -1,4 +1,5 @@
 all:
-	g++ ${CFLAGS} ../emulator_lib/lib_emulator.a ./*.cpp -o demo
+	# cat ../emulator_lib/${LIB_NAME}
+	g++ ${CFLAGS} -o demo ./main.cpp ../emulator_lib/${LIB_NAME} 
 	echo -e "\033[0;32m[MAKE] Demo application Compiled Succesfully"
 	
