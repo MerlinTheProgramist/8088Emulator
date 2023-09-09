@@ -15,10 +15,29 @@
 
 #include "binTrie.h"
 
+
 class IO
 {
   std::bitset<4> Byte2BCD();
 };
+
+typedef struct MemWordPos{
+  Word& littleEndianMem; // lest significant byte in littleEndin, THE LEFT ONE
+  MemWordPos(Byte& less):littleEndianMem{(Word&)less}{}
+  
+  template<class T> T operator=(T) = delete;
+  Word operator=(Word w){ // unpack bigEndian to LittleEndian
+    littleEndianMem = w<<8; // this overwrites the entire Word
+    littleEndianMem|= w>>8; // this to above
+    return w;
+  }
+  operator Word() const{ // convertion operator
+    Word res; 
+    res = littleEndianMem<<8; // this overwrites the entire Word
+    res|= littleEndianMem>>8;   // this to above
+    return res;
+  }
+} MemWordPos;
 
 struct CPU;
 
@@ -83,15 +102,6 @@ public:
 
 private:
   // 
-  typedef struct MemWordPos{
-    Word& littleEndianMem; // lest significant byte in littleEndin, THE LEFT ONE
-    MemWordPos(Byte& less):littleEndianMem{(Word&)less}{}
-    Word& operator=(Word& w){ // unpack bigEndian to LittleEndian
-      littleEndianMem = w<<8; // this overwrites the entire Word
-      littleEndianMem|= w>>8;   // this to above
-      return w;
-    }
-  } MemWordPos;
 
 public:
   MemWordPos getWord(uint32_t i)
