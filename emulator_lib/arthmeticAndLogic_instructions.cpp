@@ -1,6 +1,7 @@
 #include "8088CPU.h"
 #include "consts.h"
 #include "macros.h"
+#include <memory>
 
 void CPU::ADD_memORreg_reg(Word op){
   std::cout << "call:" << __func__ << std::endl;
@@ -11,16 +12,16 @@ void CPU::ADD_memORreg_reg(Word op){
       Word& reg1 = getWordReg(arg);
       Word& reg2 = getWordReg(arg>>3);
       if(op & DIR_MASK)
-         reg1 = Flags.mark_WordAdd(reg1,reg2);
+         reg1 = Flags.mark_ADD(reg1,reg2);
       else
-        reg2 = Flags.mark_WordAdd(reg2,reg1);
+        reg2 = Flags.mark_ADD(reg2,reg1);
     }else{
       auto&& mem_place{mem.getWord(calcAddr(arg>>6, arg))};
       Word& reg = getWordReg(arg>>3);
       if(op & DIR_MASK)
-         mem_place = Flags.mark_WordAdd(mem_place,reg);
+         mem_place = Flags.mark_ADD(mem_place,reg);
       else
-        reg = Flags.mark_WordAdd(reg,mem_place);
+        reg = Flags.mark_ADD(reg,mem_place);
     }
   }
   else
@@ -28,18 +29,18 @@ void CPU::ADD_memORreg_reg(Word op){
     Byte& place = (arg>>6==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
     Byte& reg =  getByteReg(arg>>3);
     if(op & DIR_MASK)
-       place = Flags.mark_ByteAdd(place, reg);
+       place = Flags.mark_ADD(place, reg);
     else
-       reg = Flags.mark_ByteAdd(reg, place);
+       reg = Flags.mark_ADD(reg, place);
   }
 }
 
 void CPU::ADD_ac_imm(Word op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
-    AX = Flags.mark_WordAdd(AX,FetchWord());
+    AX = Flags.mark_ADD(AX,FetchWord());
   else
-    AL = Flags.mark_ByteAdd(AL,FetchByte());
+    AL = Flags.mark_ADD(AL,FetchByte());
 }
 
 // ADD: 1000'00sw 11'000'reg
@@ -72,19 +73,19 @@ void CPU::ADD_ADC_SUB_SBB_memORreg_imm(Word op){
     if(op & WORD_MASK)
     {
       Word dest = getWordReg(arg);
-      dest = Flags.mark_WordAdd(dest,src, carry);
+      dest = Flags.mark_ADD(dest,src, carry);
     }else{
-      Word dest = getByteReg(arg);
-      dest = Flags.mark_ByteAdd(dest,(Byte)src, carry);
+      Byte dest = getByteReg(arg);
+      dest = Flags.mark_ADD(dest,(Byte)src, carry);
     }
   }else{
     src *= (s)?FetchWord():FetchByte();
     if(op & WORD_MASK){
       Word dest = mem.getWord(calcAddr(arg>>6, arg));
-      dest = Flags.mark_WordAdd(dest,src, carry);
+      dest = Flags.mark_ADD(dest,src, carry);
     }else{
-      Word dest = mem.getByte(calcAddr(arg>>6, arg));
-      dest = Flags.mark_ByteAdd(dest,(Byte)src, carry);
+      Byte dest = mem.getByte(calcAddr(arg>>6, arg));
+      dest = Flags.mark_ADD(dest,(Byte)src, carry);
     }
   }
 }
@@ -98,16 +99,16 @@ void CPU::ADC_memORreg_reg(Word op){
       Word& place = getWordReg(arg);
       Word& reg = getWordReg(arg>>3);
       if(op & DIR_MASK)
-        place = Flags.mark_WordAdd(place,reg, Flags.CF);
+        place = Flags.mark_ADD(place,reg, Flags.CF);
       else
-        reg = Flags.mark_WordAdd(reg,place, Flags.CF);
+        reg = Flags.mark_ADD(reg,place, Flags.CF);
     }else{
       auto&& place{mem.getWord(calcAddr(arg>>6, arg))};
       Word& reg = getWordReg(arg>>3);
       if(op & DIR_MASK)
-        place = Flags.mark_WordAdd(place,reg, Flags.CF);
+        place = Flags.mark_ADD(place,reg, Flags.CF);
       else
-        reg = Flags.mark_WordAdd(reg,place, Flags.CF);
+        reg = Flags.mark_ADD(reg,place, Flags.CF);
     }
   }
   else
@@ -115,25 +116,25 @@ void CPU::ADC_memORreg_reg(Word op){
     Byte& place = (arg>>6==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
     Byte& reg =  getByteReg(arg>>3);
     if(op & DIR_MASK)
-       place = Flags.mark_ByteAdd(place, reg, Flags.CF);
+       place = Flags.mark_ADD(place, reg, Flags.CF);
     else
-       reg = Flags.mark_ByteAdd(reg, place, Flags.CF);
+       reg = Flags.mark_ADD(reg, place, Flags.CF);
   }
 }
 
 void CPU::ADC_ac_imm(Word op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
-    AX = Flags.mark_WordAdd(AX,FetchWord(), Flags.CF);
+    AX = Flags.mark_ADD(AX,FetchWord(), Flags.CF);
   else
-    AL = Flags.mark_ByteAdd(AL,FetchByte(), Flags.CF);
+    AL = Flags.mark_ADD(AL,FetchByte(), Flags.CF);
 }
 
 
 void CPU::INC_reg16(Word op){
   std::cout << "call: " << __func__ << std::endl;
   Word& dest = getWordReg(op);
-  dest = Flags.mark_WordInc(dest, 1);
+  dest = Flags.mark_inc(dest, (Word)1);
 }
 
 void CPU::INC_DEC_memORreg8(Word op){
@@ -145,17 +146,17 @@ void CPU::INC_DEC_memORreg8(Word op){
   if(arg >> 6 == 0b11)
   {
     Byte& dest = getByteReg(arg);
-    dest = Flags.mark_ByteInc(dest, sign);
+    dest = Flags.mark_inc(dest, sign);
   }
   else
   {
     if(op & WORD_MASK)
     {
       auto&& dest = mem.getWord(calcAddr(arg>>6, arg));
-      dest = Flags.mark_WordInc(dest, sign);
+      dest = Flags.mark_inc(dest, sign);
     }else{
       Byte& dest = mem.getByte(calcAddr(arg>>6, arg));
-      dest = Flags.mark_ByteInc(dest, sign);
+      dest = Flags.mark_inc(dest, sign);
     }
   }
 }
@@ -163,8 +164,8 @@ void CPU::INC_DEC_memORreg8(Word op){
 void CPU::AAA(Word){
   std::cout << "call: " << __func__ << std::endl;
   if((AL & NIB_MASK)>9 || Flags.AF){
-    AL = Flags.mark_ByteAdd(AL,6);
-    AH = Flags.mark_WordAdd(AH,1);
+    AL = Flags.mark_ADD(AL,(Byte)6);
+    AH = Flags.mark_ADD(AH,(Byte)1);
     AL &= NIB_MASK;
     Flags.AF = Flags.CF = 1;
   }
@@ -173,11 +174,11 @@ void CPU::AAA(Word){
 void CPU::DAA(Word){
   std::cout << "call: " << __func__ << std::endl;
   if((AL & (NIB_MASK)) > 0x9F || Flags.AF){
-    AL = Flags.mark_ByteAdd(AL,6);
+    AL = Flags.mark_ADD(AL,(Byte)6);
     Flags.AF = 1;
     if(AL > 0x9f || Flags.CF)
     {
-      AL = Flags.mark_ByteAdd(AL, 0x60);
+      AL = Flags.mark_ADD(AL, (Byte)0x60);
       Flags.CF = 1;
     }
   }
@@ -192,16 +193,16 @@ void CPU::SUB_memORreg_reg(Word op){
       Word& reg1 = getWordReg(arg);
       Word& reg2 = getWordReg(arg>>3);
       if(op & DIR_MASK)
-        reg1 = Flags.mark_WordAdd(reg1,-reg2, Flags.CF);
+        reg1 = Flags.mark_ADD<Word>(reg1, static_cast<Word>(-reg1), Flags.CF);
       else
-        reg2 = Flags.mark_WordAdd(reg2, -reg1, Flags.CF);
+        reg2 = Flags.mark_ADD<Word>(reg2, static_cast<Word>(-reg1), Flags.CF);
     }else{
       auto&& mem_place{mem.getWord(calcAddr(arg>>6, arg))};
       Word& reg = getWordReg(arg>>3);
       if(op & DIR_MASK)
-        mem_place = Flags.mark_WordAdd(mem_place,-reg, Flags.CF);
+        mem_place = Flags.mark_ADD<Byte>(mem_place, static_cast<Byte>(-reg), Flags.CF);
       else
-        reg = Flags.mark_WordAdd(reg, -mem_place, Flags.CF);
+        reg = Flags.mark_ADD<Byte>(reg, static_cast<Byte>(-mem_place), Flags.CF);
     }
   }
   else
@@ -209,18 +210,18 @@ void CPU::SUB_memORreg_reg(Word op){
     Byte& place = (arg>>6==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
     Byte& reg =  getByteReg(arg>>3);
     if(op & DIR_MASK)
-       place = Flags.mark_ByteAdd(place, -reg, Flags.CF);
+       place = Flags.mark_ADD<Byte>(place, static_cast<Byte>(-reg), Flags.CF);
     else
-       reg = Flags.mark_ByteAdd(reg, -place, Flags.CF);
+       reg = Flags.mark_ADD<Byte>(reg, static_cast<Byte>(-place), Flags.CF);
   }
 }
 
 void CPU::SUB_ac_imm(Word op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
-    AX = Flags.mark_WordAdd(AX,-FetchWord());
+    AX = Flags.mark_ADD(AX, static_cast<Word>(-FetchWord()));
   else
-    AL = Flags.mark_ByteAdd(AL,-FetchByte());
+    AL = Flags.mark_ADD(AL, static_cast<Byte>(-FetchByte()));
 }
 
 void CPU::SUB_memORreg_imm(Word op){
@@ -232,16 +233,16 @@ void CPU::SUB_memORreg_imm(Word op){
       Word& reg1 = getWordReg(arg);
       Word& reg2 = getWordReg(arg>>3);
       if(op & DIR_MASK)
-        reg1 = Flags.mark_WordAdd(reg1, -reg2);
+        reg1 = Flags.mark_ADD(reg1, static_cast<Word>(-reg2));
       else
-        reg2 = Flags.mark_WordAdd(reg2, -reg1);
+        reg2 = Flags.mark_ADD(reg2, static_cast<Word>(-reg1));
     }else{
       auto&& mem_place{mem.getWord(calcAddr(arg>>6, arg))};
       Word& reg = getWordReg(arg>>3);
       if(op & DIR_MASK)
-        mem_place = Flags.mark_WordAdd(mem_place, -reg);
+        mem_place = Flags.mark_ADD(mem_place, static_cast<Word>(-reg));
       else
-        reg = Flags.mark_WordAdd(reg, -mem_place);
+        reg = Flags.mark_ADD(reg, static_cast<Word>(-mem_place));
     }
   }
   else
@@ -249,9 +250,9 @@ void CPU::SUB_memORreg_imm(Word op){
     Byte& place = (arg>>6==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
     Byte& reg =  getByteReg(arg>>3);
     if(op & DIR_MASK)
-       place = Flags.mark_ByteAdd(place, -reg);
+       place = Flags.mark_ADD(place, static_cast<Byte>(-reg));
     else
-       reg = Flags.mark_ByteAdd(reg, -place);
+       reg = Flags.mark_ADD(reg, static_cast<Byte>(-place));
   }
 }
 
@@ -264,42 +265,42 @@ void CPU::SBB_memORreg_reg(Word op){
 
     Word& memORreg = (arg>>6==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
     if(op & DIR_MASK) 
-      memORreg = Flags.mark_WordAdd(memORreg,-reg, -Flags.CF);
+      memORreg = Flags.mark_ADD(memORreg, static_cast<Word>(-reg), -Flags.CF);
     else 
-      reg = Flags.mark_WordAdd(reg, -memORreg, -Flags.CF);
+      reg = Flags.mark_ADD(reg, static_cast<Word>(-memORreg), -Flags.CF);
   }
   else
   {
     Byte& memORreg = (arg>>6==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
     Byte& reg =  getByteReg(arg>>3);
     if(op & DIR_MASK)
-       memORreg = Flags.mark_ByteAdd(memORreg, -reg, -Flags.CF);
+       memORreg = Flags.mark_ADD(memORreg, static_cast<Byte>(-reg), -Flags.CF);
     else
-       reg = Flags.mark_ByteAdd(reg, -memORreg, -Flags.CF);
+       reg = Flags.mark_ADD(reg, static_cast<Byte>(-memORreg), -Flags.CF);
   }
 }
 
 void CPU::SBB_ac_imm(Word op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
-    AX = Flags.mark_WordAdd(AX, -FetchWord(), -Flags.CF);
+    AX = Flags.mark_ADD(AX, static_cast<Word>(-FetchWord()), -Flags.CF);
   else
-    AL = Flags.mark_ByteAdd(AL, -FetchByte(), -Flags.CF);
+    AL = Flags.mark_ADD(AL, static_cast<Byte>(-FetchByte()), -Flags.CF);
 }
 void CPU::SBB_mem_imm(Word op, Byte arg){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK){
     Word dest = mem.getWord(calcAddr(arg>>6, arg));
     if(op & S_MASK)
-      dest = Flags.mark_WordSub(dest, FetchWord(), Flags.CF);
+      dest = Flags.mark_SUB(dest, FetchWord(), Flags.CF);
     else
-      dest = Flags.mark_WordSub(dest, FetchByte(), Flags.CF);
+      dest = Flags.mark_SUB(dest, static_cast<Word>(FetchByte()), Flags.CF);
   }else{
     Byte dest = mem.getByte(calcAddr(arg>>6, arg));
     if(op & S_MASK)
-      dest = Flags.mark_ByteSub(dest, FetchByte(), Flags.CF);
+      dest = Flags.mark_SUB(dest, FetchByte(), Flags.CF);
     else
-      dest = Flags.mark_ByteSub(dest, FetchByte(), Flags.CF);    
+      dest = Flags.mark_SUB(dest, FetchByte(), Flags.CF);    
   }
   
 }
@@ -307,7 +308,7 @@ void CPU::SBB_mem_imm(Word op, Byte arg){
 void CPU::DEC_reg16(Word op){
   std::cout << "call: " << __func__ << std::endl;
   Word& dest = getWordReg(op);
-  dest = Flags.mark_WordInc(dest, -1);
+  dest = Flags.mark_inc(dest, -1);
 }
 
 
@@ -318,13 +319,13 @@ void CPU::NEG_regORmem(Word op){
     if(place == 0)
       Flags.CF = 0;
     else
-      place = Flags.mark_WordAdd((Word)0, -place);
+      place = Flags.mark_ADD<Word>(0, static_cast<Word>(-place));
   }else{
     Byte& place = ((arg>>6)==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
     if(place == 0)
       Flags.CF = 0;
     else
-      place = Flags.mark_ByteAdd((Word)0, -place);
+      place = Flags.mark_ADD<Word>(0, static_cast<Word>(-place));
   }
 }
 
@@ -335,16 +336,16 @@ void CPU::CMP_reg_mem(Word op){
       Word place = ((arg>>6)==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
       Word reg = getWordReg(arg>>3);
       if(op & DIR_MASK) 
-        Flags.mark_WordAdd(reg, -place);
+        Flags.mark_ADD(reg, static_cast<Word>(-place));
       else
-        Flags.mark_WordAdd(place, -reg);
+        Flags.mark_ADD(place, static_cast<Word>(-reg));
     }else{
       Byte place = ((arg>>6)==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
       Byte reg = getByteReg(arg>>3);
       if(op & DIR_MASK) 
-        Flags.mark_ByteAdd(reg, -place);
+        Flags.mark_ADD(reg, static_cast<Byte>(-place));
       else
-        Flags.mark_ByteAdd(place, -reg);
+        Flags.mark_ADD(place, static_cast<Byte>(-reg));
     }
 }
 
@@ -354,11 +355,11 @@ void CPU::CMP_reg_imm(Word op, Byte arg){
   {
     Word reg = getWordReg(arg);
     Word imm = s?FetchWord():FetchByte();
-    Flags.mark_WordAdd(reg, -imm);
+    Flags.mark_ADD(reg, static_cast<Word>(-imm));
   }else{
     Byte reg = getByteReg(arg);
     Byte imm = s?FetchByte():FetchByte();
-    Flags.mark_ByteAdd(reg, -imm);
+    Flags.mark_ADD(reg, static_cast<Byte>(-imm));
   }
 }
 
