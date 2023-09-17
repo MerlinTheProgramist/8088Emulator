@@ -3,7 +3,7 @@
 #include "macros.h"
 #include <memory>
 
-void CPU::ADD_memORreg_reg(Word op){
+void CPU::ADD_memORreg_reg(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   Byte arg = FetchByte();
   if(op & WORD_MASK)
@@ -35,7 +35,7 @@ void CPU::ADD_memORreg_reg(Word op){
   }
 }
 
-void CPU::ADD_ac_imm(Word op){
+void CPU::ADD_ac_imm(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
     AX = Flags.mark_ADD(AX,FetchWord());
@@ -47,7 +47,7 @@ void CPU::ADD_ac_imm(Word op){
 // ADC: 1000'00sw 11'010'reg
 // SUB: 1000'00sw 11'101'reg
 // SBB: 1000'00sw 11'011'reg
-void CPU::ADD_ADC_SUB_SBB_memORreg_imm(Word op){
+void CPU::ADD_ADC_SUB_SBB_memORreg_imm(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   const Bit s = op & S_MASK;
   const Byte arg = FetchByte();
@@ -90,7 +90,7 @@ void CPU::ADD_ADC_SUB_SBB_memORreg_imm(Word op){
   }
 }
 
-void CPU::ADC_memORreg_reg(Word op){
+void CPU::ADC_memORreg_reg(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   Byte arg = FetchByte();
   if(op & WORD_MASK)
@@ -122,7 +122,7 @@ void CPU::ADC_memORreg_reg(Word op){
   }
 }
 
-void CPU::ADC_ac_imm(Word op){
+void CPU::ADC_ac_imm(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
     AX = Flags.mark_ADD(AX,FetchWord(), Flags.CF);
@@ -131,13 +131,13 @@ void CPU::ADC_ac_imm(Word op){
 }
 
 
-void CPU::INC_reg16(Word op){
+void CPU::INC_reg16(Byte op){
   std::cout << "call: " << __func__ << std::endl;
   Word& dest = getWordReg(op);
   dest = Flags.mark_inc(dest, (Word)1);
 }
 
-void CPU::INC_DEC_memORreg8(Word op){
+void CPU::INC_DEC_memORreg8(Byte op){
   std::cout << "call: " << __func__ << std::endl;
   Byte arg = FetchByte();
   
@@ -161,7 +161,7 @@ void CPU::INC_DEC_memORreg8(Word op){
   }
 }
 
-void CPU::AAA(Word){
+void CPU::AAA(Byte){
   std::cout << "call: " << __func__ << std::endl;
   if((AL & NIB_MASK)>9 || Flags.AF){
     AL = Flags.mark_ADD(AL,(Byte)6);
@@ -171,9 +171,9 @@ void CPU::AAA(Word){
   }
 }
 
-void CPU::DAA(Word){
+void CPU::DAA(Byte){
   std::cout << "call: " << __func__ << std::endl;
-  if((AL & (NIB_MASK)) > 0x9F || Flags.AF){
+  if((AL & (NIB_MASK)) > 9 || Flags.AF){
     AL = Flags.mark_ADD(AL,(Byte)6);
     Flags.AF = 1;
     if(AL > 0x9f || Flags.CF)
@@ -184,7 +184,7 @@ void CPU::DAA(Word){
   }
 }
 
-void CPU::SUB_memORreg_reg(Word op){
+void CPU::SUB_memORreg_reg(Byte op){
   std::cout << "call: " << __func__ << std::endl;
   Byte arg = FetchByte();
   if(op & WORD_MASK)
@@ -216,7 +216,7 @@ void CPU::SUB_memORreg_reg(Word op){
   }
 }
 
-void CPU::SUB_ac_imm(Word op){
+void CPU::SUB_ac_imm(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
     AX = Flags.mark_ADD(AX, static_cast<Word>(-FetchWord()));
@@ -224,7 +224,7 @@ void CPU::SUB_ac_imm(Word op){
     AL = Flags.mark_ADD(AL, static_cast<Byte>(-FetchByte()));
 }
 
-void CPU::SUB_memORreg_imm(Word op){
+void CPU::SUB_memORreg_imm(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   Byte arg = FetchByte();
   if(op & WORD_MASK)
@@ -256,7 +256,7 @@ void CPU::SUB_memORreg_imm(Word op){
   }
 }
 
-void CPU::SBB_memORreg_reg(Word op){
+void CPU::SBB_memORreg_reg(Byte op){
   std::cout << "call: " << __func__ << std::endl;
   Byte arg = FetchByte();
   if(op & WORD_MASK)
@@ -280,14 +280,14 @@ void CPU::SBB_memORreg_reg(Word op){
   }
 }
 
-void CPU::SBB_ac_imm(Word op){
+void CPU::SBB_ac_imm(Byte op){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK)
     AX = Flags.mark_ADD(AX, static_cast<Word>(-FetchWord()), -Flags.CF);
   else
     AL = Flags.mark_ADD(AL, static_cast<Byte>(-FetchByte()), -Flags.CF);
 }
-void CPU::SBB_mem_imm(Word op, Byte arg){
+void CPU::SBB_mem_imm(Byte op, Byte arg){
   std::cout << "call:" << __func__ << std::endl;
   if(op & WORD_MASK){
     Word dest = mem.getWord(calcAddr(arg>>6, arg));
@@ -305,14 +305,14 @@ void CPU::SBB_mem_imm(Word op, Byte arg){
   
 }
 
-void CPU::DEC_reg16(Word op){
+void CPU::DEC_reg16(Byte op){
   std::cout << "call: " << __func__ << std::endl;
   Word& dest = getWordReg(op);
   dest = Flags.mark_inc(dest, -1);
 }
 
 
-void CPU::NEG_regORmem(Word op){
+void CPU::NEG_regORmem(Byte op){
   Byte arg = FetchByte();
   if(op & WORD_MASK){
     Word& place = ((arg>>6)==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
@@ -329,27 +329,28 @@ void CPU::NEG_regORmem(Word op){
   }
 }
 
-void CPU::CMP_reg_mem(Word op){
+void CPU::CMP_memregORregmem(Byte op){
     Byte arg = FetchByte();
+  
     if(op & WORD_MASK)
     {
       Word place = ((arg>>6)==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
       Word reg = getWordReg(arg>>3);
       if(op & DIR_MASK) 
-        Flags.mark_ADD(reg, static_cast<Word>(-place));
+        Flags.mark_SUB(reg, place);
       else
-        Flags.mark_ADD(place, static_cast<Word>(-reg));
+        Flags.mark_SUB(place, reg);
     }else{
       Byte place = ((arg>>6)==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
       Byte reg = getByteReg(arg>>3);
       if(op & DIR_MASK) 
-        Flags.mark_ADD(reg, static_cast<Byte>(-place));
+        Flags.mark_SUB(reg, place);
       else
-        Flags.mark_ADD(place, static_cast<Byte>(-reg));
+        Flags.mark_SUB(place, reg);
     }
 }
 
-void CPU::CMP_reg_imm(Word op, Byte arg){
+void CPU::CMP_reg_imm(Byte op, Byte arg){
   Bit s = arg & S_MASK;
   if(op & WORD_MASK)
   {
@@ -363,6 +364,33 @@ void CPU::CMP_reg_imm(Word op, Byte arg){
   }
 }
 
-void CPU::CMP_mem_imm(Word op, Byte arg){
-  
+void CPU::CMP_ac_imm(Byte op){
+  if(op & WORD_MASK)
+    Flags.mark_SUB(AX, FetchWord());
+  else
+    Flags.mark_SUB(AL, FetchByte());
+}
+
+void CPU::AAS(Byte){
+  if((AL & NIB_MASK) > 9 || Flags.AF == 1)
+  {
+    AL = Flags.mark_SUB(AL, (Byte)6);
+    AH = Flags.mark_inc(AH, -1);
+    AL &= NIB_MASK;
+
+    Flags.AF = Flags.CF = 1;
+  }
+}
+
+void CPU::DAS(Byte){
+  if((AL & NIB_MASK) > 9 || Flags.AF == 1)
+  {
+    AL = Flags.mark_SUB(AL, (Byte)6);
+    Flags.AF = 1;
+    if(AL > 0x9F || Flags.CF == 1)
+    {
+      AL = Flags.mark_SUB(AL, (Byte)0x60);
+      Flags.CF = 1;
+    }
+  }
 }

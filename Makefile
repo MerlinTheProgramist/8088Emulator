@@ -1,5 +1,5 @@
 
-export CFLAGS := -Wall -Wextra -pedantic -Weffc++
+export CFLAGS := -Wall -Wextra -pedantic -Weffc++ --std=c++17
 export LIB_NAME := lib_emulator.a
 
 ifdef DEBUG

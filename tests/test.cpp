@@ -48,24 +48,43 @@ TEST_CASE("CPU")
   SECTION("PUSH POP"){
 
     mem[i  ] = 0b10110000; // MOV dest: AL
-    Word x = mem[i+1] = GENERATE(1,10, Word_MAX);// value
+    Word x = mem[++i] = GENERATE(1,10, Word_MAX);// value
     cpu.ExecuteNext();
     
-    mem[i+2] = 0b01010'000; // PUSH reg: AX
+    mem[++i] = 0b01010'000; // PUSH reg: AX
     cpu.ExecuteNext();
 
     REQUIRE(mem.getWord(cpu.SP) == x);
   
-    mem[i+3] = 0b01011'011; // POP reg: BX
+    mem[++i] = 0b01011'011; // POP reg: BX
 
     cpu.ExecuteNext();
-    // value is still in memory but we don't care
+    // value is still in memory after SP, but we don't care
     REQUIRE(mem.getWord(cpu.SP) != x); 
   }
 
-  SECTION("ADD")
+  SECTION("SUB reg self")
   {
+    Byte x = cpu.AL = GENERATE(1,10,Byte_MAX);
     
+    mem[i] = 0b0010101'0; // SUB byte
+    mem[++i] = 0b11'000'000; // AL, AL
+
+    cpu.ExecuteNext();
+    
+    CHECK((int)cpu.AL == 0);
+  }
+  
+  SECTION("XOR reg self")
+  {
+    Byte x = cpu.AL = GENERATE(1,10,Byte_MAX);
+    
+    mem[i] = 0b0010101'0; // SUB byte
+    mem[++i] = 0b11'000'000; // AL, AL
+
+    cpu.ExecuteNext();
+    
+    CHECK((int)cpu.AL == 0);
   }
 }
 

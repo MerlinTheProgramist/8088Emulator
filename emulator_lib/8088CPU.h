@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <exception>
 #include <fstream>
@@ -16,7 +17,7 @@
 
 #include "consts.h"
 #include "macros.h"
-
+#include "flags.h"
 
 
 class IO
@@ -50,7 +51,7 @@ typedef struct MemWordPos{
 class Mem
 {
 public:
-  static constexpr uint32_t MAX_MEM = 1024 * 1024; // 2^20 1MB
+  static constexpr uint32_t MAX_MEM = 1<<20; // 2^20 1MB
   Byte Data[MAX_MEM]{};
 
   void Reset(){
@@ -104,54 +105,6 @@ public:
   Word DI{};    // Destination pointer
   Word IP{};    // Instruction pointer
 
-  struct Flags_t{
-    // Control Flags
-    Bit   :4;
-    Bit TF:1;   // Trap
-    Bit DF:1;   // Direction
-    Bit IF:1;   // Interrupt enable
-    // Status Flags
-    Bit OF:1;   // Overflow
-    Bit SF:1;   // Sign
-    Bit ZF:1;   // Zero
-    Bit   :1;
-    Bit AF:1;   // Auxiliry Carry
-    Bit   :1;
-    Bit PF:1;   // Parity
-    Bit   :1;
-    Bit CF:1;   // Carry 
-
-  private:
-    // xoring each bit to the least significant, and then test it
-    template<typename T>
-    bool getParity(T n);
-    
-  public:
-    // OF SF ZF AF PF CF
-    template<typename T>
-    T mark_ADD(T a, T b, Bit c=0);
-    template<class T, class T1> Byte mark_ADD(T, T1, Bit=0) = delete;
-
-    template<typename T>
-    T mark_SUB(T a, T b, Bit c=0);
-    template<class T, class T1> Byte mark_SUB(T, T1, Bit=0) = delete;
-
-    template<typename T>
-    T mark_AND(T a, T b);
-    template<class T, class T1> Byte mark_AND(T, T1) = delete;
-    
-    template<typename T>
-    T mark_OR(T a, T b);
-    template<class T, class T1> Byte mark_OR(T, T1) = delete;
-    
-    template<typename T>
-    T mark_XOR(T a, T b);
-    template<class T, class T1> Byte mark_XOR(T, T1) = delete;
-      
-    // Same as Add but without CF
-    template<typename T, typename sT = std::make_signed_t<T>>
-    T mark_inc(T a, sT c=1);
-  };
   
   union{
     Word flagsWord{};
@@ -174,98 +127,100 @@ public:
   ******************/
   
   // Moves
-  void MOVS(Word);
-  void MOV_seg(Word);
-  void MOV_reg(Word);
-  void MOV_ac_mem(Word);
-  void MOV_reg_imm(Word);
+  void MOVS(Byte);
+  void MOV_seg(Byte);
+  void MOV_reg(Byte);
+  void MOV_ac_mem(Byte);
+  void MOV_reg_imm(Byte);
 
   // pushes
-  void PUSH_reg(Word);
-  void PUSH_mem(Word);
-  void PUSH_ES(Word); 
-  void PUSH_CS(Word); 
-  void PUSH_SS(Word);
-  void PUSH_DS(Word); 
-  void PUSHF(Word);
+  void PUSH_reg(Byte);
+  void PUSH_mem(Byte);
+  void PUSH_ES(Byte); 
+  void PUSH_CS(Byte); 
+  void PUSH_SS(Byte);
+  void PUSH_DS(Byte); 
+  void PUSHF(Byte);
 
   // popes
-  void POP_reg(Word);
-  void POP_mem(Word);
-  void POP_ES(Word); 
-  void POP_CS(Word); 
-  void POP_SS(Word);
-  void POP_DS(Word); 
-  void POPF(Word);
+  void POP_reg(Byte);
+  void POP_mem(Byte);
+  void POP_ES(Byte); 
+  void POP_CS(Byte); 
+  void POP_SS(Byte);
+  void POP_DS(Byte); 
+  void POPF(Byte);
 
   // XCHG (exchage byte or word)
-  void XCHG_ac_reg(Word);
-  void XCHG_reg_memORreg(Word);
+  void XCHG_ac_reg(Byte);
+  void XCHG_reg_memORreg(Byte);
 
   // XLAT (index a table in memory)
-  void XLAT(Word);
+  void XLAT(Byte);
 
   // IN (load AL/AX from IO on addr from DX or imm)
-  void IN(Word);
-  void IN_addr(Word);
+  void IN(Byte);
+  void IN_addr(Byte);
   // OUT (output AL/AX to IO on addr from DX or imm)
-  void OUT(Word);
-  void OUT_addr(Word);
+  void OUT(Byte);
+  void OUT_addr(Byte);
 
   // LEA (load effective address)
-  void LEA(Word);
+  void LEA(Byte);
   // LDS (load data segment register)
-  void LDS(Word);
+  void LDS(Byte);
   // LES (load extra segment register)
-  void LES(Word);
+  void LES(Byte);
 
   // LAHF (load AH register from flags)
-  void LAHF(Word);
+  void LAHF(Byte);
   // SAHF (store AH reg to frags)
-  void SAHF(Word);
+  void SAHF(Byte);
 
   /***********
   * ARTHMETIC
   ***********/
-  void ADD_memORreg_reg(Word);
-  void ADD_ac_imm(Word);
-  void ADD_ADC_SUB_SBB_memORreg_imm(Word);
+  void ADD_memORreg_reg(Byte);
+  void ADD_ac_imm(Byte);
+  void ADD_ADC_SUB_SBB_memORreg_imm(Byte);
   // ACD (add word with carry flag)
-  void ADC_memORreg_reg(Word);
-  void ADC_ac_imm(Word);
+  void ADC_memORreg_reg(Byte);
+  void ADC_ac_imm(Byte);
 
   // INC
-  void INC_reg16(Word);
-  void INC_DEC_memORreg8(Word);
+  void INC_reg16(Byte);
+  void INC_DEC_memORreg8(Byte);
 
   // AAA (asci adjust for addition)
-  void AAA(Word);
+  void AAA(Byte);
 
   // DAA (decimal adjust for addition)
-  void DAA(Word);
+  void DAA(Byte);
 
-  void SUB_memORreg_reg(Word);
-  void SUB_ac_imm(Word);
-  void SUB_memORreg_imm(Word);
+  void SUB_memORreg_reg(Byte);
+  void SUB_ac_imm(Byte);
+  void SUB_memORreg_imm(Byte);
   
   // SBB (subtract byte or word with borrow)
-  void SBB_memORreg_reg(Word);
-  void SBB_ac_imm(Word);
-  void SBB_mem_imm(Word, Byte);
+  void SBB_memORreg_reg(Byte);
+  void SBB_ac_imm(Byte);
+  void SBB_mem_imm(Byte, Byte);
 
   // DEC (decrement)
-  void DEC_reg16(Word);
+  void DEC_reg16(Byte);
   
   // LOGICAL
 
   // NEG
-  void NEG_regORmem(Word);
+  void NEG_regORmem(Byte);
 
-  void CMP_memregORregmem(Word);
-  void CMP_ac_imm(Word);
-  void CMP_reg_mem(Word);
-  void CMP_reg_imm(Word, Byte);
-  void CMP_mem_imm(Word, Byte);
+  void CMP_memregORregmem(Byte);
+  void CMP_ac_imm(Byte);
+  void CMP_reg_imm(Byte, Byte);
+
+
+  void AAS(Byte);
+  void DAS(Byte);
   
   void Reset()
   {
@@ -539,25 +494,22 @@ public:
           Byte src = FetchByte();
           switch((arg>>3)&0b111)
           {
-            switch((arg>>3)&0b111)
-            {
-              case 0b000: dest = Flags.mark_ADD(dest, src); // ADD 
-                return;
-              case 0b001: dest = Flags.mark_OR(dest, src);  // OR  
-                return;
-              case 0b010: dest = Flags.mark_ADD(dest, src, Flags.CF); // ADC
-                return;
-              case 0b011: dest = Flags.mark_SUB(dest, src, Flags.CF); // SBB
-                return;
-              case 0b100: dest = Flags.mark_AND(dest, src); // AND 
-                return;
-              case 0b101: dest = Flags.mark_SUB(dest, src); // SUB
-                return; 
-              case 0b110: dest = Flags.mark_XOR(dest, src); // XOR
-                return;
-              case 0b111: Flags.mark_SUB(dest, src); // CMP 
-                return;
-            }
+            case 0b000: dest = Flags.mark_ADD(dest, src); // ADD 
+              return;
+            case 0b001: dest = Flags.mark_OR(dest, src);  // OR  
+              return;
+            case 0b010: dest = Flags.mark_ADD(dest, src, Flags.CF); // ADC
+              return;
+            case 0b011: dest = Flags.mark_SUB(dest, src, Flags.CF); // SBB
+              return;
+            case 0b100: dest = Flags.mark_AND(dest, src); // AND 
+              return;
+            case 0b101: dest = Flags.mark_SUB(dest, src); // SUB
+              return; 
+            case 0b110: dest = Flags.mark_XOR(dest, src); // XOR
+              return;
+            case 0b111: Flags.mark_SUB(dest, src); // CMP 
+              return;
           }
         }
         throw std::invalid_argument("IMPOSSIBLE");
@@ -600,10 +552,10 @@ public:
           switch((arg>>3)&0b111)
           {
             case 0b000: //INC r/m16
-              operand = Flags.mark_inc(operand, 1);      
+              operand = Flags.mark_inc(operand, (sWord)1);      
               return;
             case 0b001: // DEC r/m16
-              operand = Flags.mark_inc(operand, -1);      
+              operand = Flags.mark_inc(operand, (sWord)-1);      
               return;
             case 0b110: // PUSH r/m16
               pushWord(operand);
@@ -614,10 +566,10 @@ public:
           switch((arg>>3)&0b111)
           {
             case 0b000: //INC r/m16
-              operand = Flags.mark_inc(operand, 1);      
+              operand = Flags.mark_inc(operand, (sByte)1);      
               return;
             case 0b001: // DEC r/m16
-              operand = Flags.mark_inc(operand, -1);      
+              operand = Flags.mark_inc(operand, (sByte)-1);      
               return;
           }
         }
@@ -631,6 +583,7 @@ public:
       case 0b1111011:   //NEG_regORmem(op); 
       {
         Byte arg = FetchByte();
+        
         if(op & WORD_MASK)
           switch((arg>>3)&0b111)
           {
@@ -639,8 +592,24 @@ public:
             case 0b011: //NEG
               return;
             case 0b100: //MUL
+              if(op & WORD_MASK)
+              {
+                Word& src = ((arg>>6)==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
+                std::tie(DX, AX) = Flags.mark_WordMUL(AX, src);
+              }else{
+                Byte& src = ((arg>>6)==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
+                AX = Flags.mark_ByteMUL(AL, src);
+              }
               return;
             case 0b101: //IMUL
+              if(op & WORD_MASK)
+              {
+                Word& src = ((arg>>6)==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
+                std::tie(DX, AX) = Flags.mark_WordMUL<true>(AX, src);
+              }else{
+                Byte& src = ((arg>>6)==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
+                AX = Flags.mark_ByteMUL<true>(AL, src);
+              }
               return;
             case 0b110: // DIV
               return;
@@ -669,27 +638,27 @@ public:
       case 0b0011110:   CMP_ac_imm(op); 
         return;
       }
-      switch(op>>8){
+
+      switch(op){
       // PUSH ES, CS, SS, DS
-      case 0b00000000: PUSH_ES(op); 
+      case 0b00'000'110: PUSH_ES(op); 
         return;
-      case 0b00001000: PUSH_CS(op); 
+      case 0b00'001'110: PUSH_CS(op); 
         return;
-      case 0b00010000: PUSH_SS(op); 
+      case 0b00'010'110: PUSH_SS(op); 
         return;
-      case 0b00011000: PUSH_DS(op); 
+      case 0b00'011'110: PUSH_DS(op); 
         return;
       // POP ES, CS, SS, DS
-      case 0b00000111: POP_ES(op); 
+      case 0b00'000'111: POP_ES(op); 
         return;
-      case 0b00001111: POP_CS(op); 
+      case 0b00'001'111: POP_CS(op); 
         return;
-      case 0b00010111: POP_SS(op); 
+      case 0b00'010'111: POP_SS(op); 
         return;
-      case 0b00011111: POP_DS(op); 
+      case 0b00'011'111: POP_DS(op); 
         return;
-      return;
-
+      
       case 0b11010111:  XLAT(op); 
         return;
       case 0b10001101:  LEA(op); 
@@ -709,6 +678,10 @@ public:
       case 0b00110111:  AAA(op); 
         return;
       case 0b00100111:  DAA(op); 
+        return;
+      case 0b00111111:  AAS(op);
+        return;
+      case 0b00101111:  DAS(op);
         return;
       }
       return;
