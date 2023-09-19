@@ -205,14 +205,14 @@ void CPU::XCHG_reg_memORreg(Byte op){
   // Branch to CMP 
   if((op&0b0000'0100) == 1)
   {
-    CPU::CMP_mem_imm(op, arg);
+    CPU::CMP_mem_imm(op);
     return;
   }
   
   // Branch to SBB instead
   if(arg>>6!=0b11)
   {
-    CPU::SBB_mem_imm(op, arg);
+    CPU::SBB_mem_imm(op);
     return;
   } 
   
@@ -270,19 +270,19 @@ void CPU::SAHF(Byte){
 }
 
 
-void CPU::IN(Byte op){
+void CPU::IN(Byte){
   std::cout << "call: " << __func__ << std::endl;
 
 }
-void CPU::IN_addr(Byte op){
+void CPU::IN_addr(Byte){
   std::cout << "call: " << __func__ << std::endl;
 
 }
-void CPU::OUT(Byte op){
+void CPU::OUT(Byte){
   std::cout << "call: " << __func__ << std::endl;
 
 }
-void CPU::OUT_addr(Byte op){
+void CPU::OUT_addr(Byte){
   std::cout << "call: " << __func__ << std::endl;
 }
 

@@ -54,12 +54,12 @@ void CPU::ADD_ADC_SUB_SBB_memORreg_imm(Byte op){
   const Bit sub = (arg & 0b0000'1000);
 
   if(((arg>>3)&0b111)==0b111){
-    CMP_reg_imm(op, arg);
+    CMP_reg_imm(op);
     return;
   }
   
   // ADC_SBB
-  Bit carry = (arg & 0b0001'0000) & Flags.CF; 
+  Byte carry = (arg & 0b0001'0000) & Flags.CF; 
 
   // SUB
   Word src = sub?(-1):(1);
@@ -287,8 +287,10 @@ void CPU::SBB_ac_imm(Byte op){
   else
     AL = Flags.mark_ADD(AL, static_cast<Byte>(-FetchByte()), -Flags.CF);
 }
-void CPU::SBB_mem_imm(Byte op, Byte arg){
+void CPU::SBB_mem_imm(Byte op){
   std::cout << "call:" << __func__ << std::endl;
+
+  Byte arg = FetchWord();
   if(op & WORD_MASK){
     Word dest = mem.getWord(calcAddr(arg>>6, arg));
     if(op & S_MASK)
@@ -350,7 +352,8 @@ void CPU::CMP_memregORregmem(Byte op){
     }
 }
 
-void CPU::CMP_reg_imm(Byte op, Byte arg){
+void CPU::CMP_reg_imm(Byte op){
+  Byte arg = FetchByte();
   Bit s = arg & S_MASK;
   if(op & WORD_MASK)
   {

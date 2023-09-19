@@ -1,5 +1,7 @@
-#include "consts.h"
+#include <iostream>
 #include <type_traits>
+
+#include "consts.h"
 
 struct Flags_t{
   // Control Flags
@@ -44,6 +46,11 @@ public:
   template<typename T, bool SIGN=false>
   T mark_XOR(T a, T b);
 
+  template<typename T>
+  T mark_LSHIFT(T a, Byte c);
+  template<typename T>
+  T mark_RSHIFT(T a, Byte c);
+  
   template<bool SIGN=false>
   Word mark_ByteMUL(Byte a, Byte b);
   template<bool SIGN=false>
@@ -126,3 +133,46 @@ Word Flags_t::mark_ByteMUL(Byte a, Byte b){
   CF = OF = SIGN?(res!=(res&0xFF)):(res & 0xFF00 ) != 0;
   return res;
 }
+
+template<typename T>
+T Flags_t::mark_LSHIFT(const T a, const Byte c){
+  if(c==0)
+  {
+   std::cerr << "WARNING! LSHIFT by 0" << std::endl;
+   OF = 1;
+   return a;
+  }
+  T res = a<<(c-1);
+  CF = res>>(sizeof(T)-1);
+  res<<=1;
+  OF = ((a>0)==(res>0)); 
+  return res;
+}
+
+template<typename T>
+T Flags_t::mark_RSHIFT(const T a, const Byte c){
+  if(c==0)
+  {
+   std::cerr << "WARNING! LSHIFT by 0" << std::endl;
+   OF = 1;
+   return a;
+  }
+  T res = a>>(c-1);
+  CF = res>>(sizeof(T)*8-1);
+  res>>=1;
+  OF = ((a>0)==(res>0)); 
+  return res;
+}
+
+
+template<typename T, bool SIGN>
+T Flags_t::mark_AND(T a, T b){
+  using sT = std::make_signed_t<T>;
+  T res = a&b;
+  OF = CF = 0;
+  SF = (sT)res < 0;
+  ZF = (res == 0);
+  PF = getParity(res);
+  return res;
+}
+  

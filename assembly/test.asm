@@ -9,15 +9,19 @@ section .text
 ;SBB AX, 10
 ;SBB BX, 10
 ;SBB BYTE[1], 1
-LAHF
-MOV SS, WORD[1]
-LAHF
+; LAHF
+; MOV SS, WORD[1]
+; LAHF
+
+
+AND BL, [10]
+
 ; LAHF
 ; LAHF
 ; LAHF
 
-section .data
-table: times 10 db 0xFF
+; section .data
+; table: times 10 db 0xFF
 
 ; section .bss
 ; empty: times 5 db

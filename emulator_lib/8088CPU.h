@@ -33,11 +33,11 @@ typedef struct MemWordPos{
   MemWordPos(Byte& less):littleEndianMem{(Word&)less}{}
   
   template<class T> T operator=(T) = delete;
-  Word operator=(Word w){ // unpack bigEndian to LittleEndian
+  MemWordPos& operator=(Word w){ // unpack bigEndian to LittleEndian
     // littleEndianMem = w<<8; // this overwrites the entire Word
     // littleEndianMem|= w>>8; // this to above
     littleEndianMem = w;
-    return w;
+    return *this;
   }
   operator Word() const{ // convertion operator
     return littleEndianMem;
@@ -91,13 +91,19 @@ class CPU
 {
 public:
   Mem& mem;
-  
+
+  // don't warn about untitled structs
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wpedantic"
+
   // Data Registers
   union{struct{Byte AL; Byte AH;}; Word AX{};};       // Accumulator register
   union{struct{Byte BL; Byte BH;}; Word BX{};};       // Base register
   union{struct{Byte CL; Byte CH;}; Word CX{};};       // Counter register
   union{struct{Byte DL; Byte DH;}; Word DX{};};       // Data register
 
+  #pragma GCC diagnostic pop
+  
   // Address Registers
   Word SP{};    // Stack pointer
   Word BP{};    // Base pointer
@@ -180,6 +186,26 @@ public:
   /***********
   * ARTHMETIC
   ***********/
+
+  // manage resources like:
+  // register, memory location, value
+  struct Resource{
+    union {
+      Word* wRegMem;
+      Byte* bRegMem;
+      Word wImm;
+      Byte bImm;
+    }data;
+    
+  };
+  
+  
+  template<typename T>
+  void ADD(){
+    
+  }
+
+
   void ADD_memORreg_reg(Byte);
   void ADD_ac_imm(Byte);
   void ADD_ADC_SUB_SBB_memORreg_imm(Byte);
@@ -191,11 +217,6 @@ public:
   void INC_reg16(Byte);
   void INC_DEC_memORreg8(Byte);
 
-  // AAA (asci adjust for addition)
-  void AAA(Byte);
-
-  // DAA (decimal adjust for addition)
-  void DAA(Byte);
 
   void SUB_memORreg_reg(Byte);
   void SUB_ac_imm(Byte);
@@ -204,7 +225,7 @@ public:
   // SBB (subtract byte or word with borrow)
   void SBB_memORreg_reg(Byte);
   void SBB_ac_imm(Byte);
-  void SBB_mem_imm(Byte, Byte);
+  void SBB_mem_imm(Byte);
 
   // DEC (decrement)
   void DEC_reg16(Byte);
@@ -216,11 +237,18 @@ public:
 
   void CMP_memregORregmem(Byte);
   void CMP_ac_imm(Byte);
-  void CMP_reg_imm(Byte, Byte);
+  void CMP_reg_imm(Byte);
+  void CMP_mem_imm(Byte);
 
-
+  // Ascii & decimal adjuct 
+  void AAA(Byte);
+  void DAA(Byte);
   void AAS(Byte);
   void DAS(Byte);
+  void AAM(Byte);
+  
+  void DIV_ac_memORreg(Byte);
+  void IDIV_ac_memORreg(Byte);
   
   void Reset()
   {
@@ -427,6 +455,7 @@ public:
   void ExecuteNext()
   {
     Byte op = FetchByte();
+    Byte arg = LookupByte();
 
     // #define OP_CASE(bits) case reverse(bits) 
     switch(op>>4){
@@ -459,7 +488,6 @@ public:
         return;
       case 0x100000: // regORmem_imm
       {
-        Byte arg = FetchByte();
         Bit s = (op & S_MASK);
         Bit w = (op & WORD_MASK);
 
@@ -522,14 +550,19 @@ public:
         return;
       case 0b000110:    SBB_memORreg_reg(op); 
         return;
-      case 0b001110:    CMP_memregORregmem(op); 
-        return;
       }
 
+      // 7bit instructions
       switch(op>>1){
       case 0b1010010:    MOVS(op); 
         return;
-      case 0b1000011:   XCHG_reg_memORreg(op); 
+      case 0b1000011:
+      {
+        if(arg>>6 == 0b11) // because CMP_mem_imm can't parse register
+          XCHG_reg_memORreg(op);  // 1000'011w 11reg_reg
+        else
+          CMP_mem_imm(op);
+      }
         return;
       case 0b1110110:   IN(op); 
         return;
@@ -545,7 +578,6 @@ public:
         return;
       case 0b1111111:   // INC_DEC_memORreg8(op); 
       {
-        Byte arg = FetchByte();
         
         if(op & WORD_MASK){
           Word& operand = (arg>>6==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
@@ -582,12 +614,27 @@ public:
         return;
       case 0b1111011:   //NEG_regORmem(op); 
       {
-        Byte arg = FetchByte();
         
         if(op & WORD_MASK)
           switch((arg>>3)&0b111)
           {
+            case 0b000: //TEST
+              if(op & WORD_MASK){
+                Word& src = ((arg>>6)==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
+                Flags.mark_AND(AX, src);
+              }else{
+                Byte& src = ((arg>>6)==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
+                Flags.mark_AND(AL, src);
+              }
+              
             case 0b010: //NOT
+              if(op & WORD_MASK){
+                Word& src = ((arg>>6)==0b11)?getWordReg(arg):mem.getWord(calcAddr(arg>>6, arg));
+                src = ~src;
+              }else{
+                Byte& src = ((arg>>6)==0b11)?getByteReg(arg):mem.getByte(calcAddr(arg>>6, arg));
+                src = ~src;
+              }
               return;
             case 0b011: //NEG
               return;
@@ -612,6 +659,7 @@ public:
               }
               return;
             case 0b110: // DIV
+                DIV_ac_memORreg(op);
               return;
             case 0b111: //IDIV
               return;
@@ -637,8 +685,42 @@ public:
         return;
       case 0b0011110:   CMP_ac_imm(op); 
         return;
+      case 0b0010001:   AND_reg_memORreg(op);
+        return;
+      case 0b0010000:   AND_mem_reg(op);
+        return;
+      case 0b0010010:   AND_ac_imm(op);
+        return;
+      case 0b0000101:   OR_reg_memORreg(op);
+        return;
+      case 0b0000100:   OR_mem_reg(op);
+        return;
+      case 0b0000110:   OR_ac_imm(op);
+        return;
+      case 0b1000000:   OR_memORreg_imm(op);
+        return;
+
+      case 0b0011001:   XOR_reg_memORreg(op);
+        return;
+      case 0b0011000:   XOR_mem_reg(op);
+        return;
+      case 0b0011010:   XOR_ac_imm(op);
+        return;
+      case 0b1000010:   TEST_regORmem_reg(op);
+        return;
+      case 0b1010100:   TEST_ac_imm(op);
+        return;
+      case 0b1101000:   
+        {
+          
+          SHL_memOR1(op);
+        }
+        return;
+      case 0b1101001:   SHL_memORreg(op);
+        return;
       }
 
+      // 8bit instructions
       switch(op){
       // PUSH ES, CS, SS, DS
       case 0b00'000'110: PUSH_ES(op); 
@@ -683,7 +765,28 @@ public:
         return;
       case 0b00101111:  DAS(op);
         return;
-      }
+      case 0b11010100:
+        switch(arg)
+        {
+          case 0b00001010:
+            AAM(op);
+
+        }
+      
       return;
-    }
+      case 0b11010101:
+      {
+        switch(arg)
+        {
+           case 0b00001010:
+            AAD(op);   
+        }  
+      }
+      case 0b10011000:
+        CBW(op);
+        return;
+      case 0b10011001:
+        CWD(op);
+        return;
+    }}
 };
