@@ -4,6 +4,8 @@
 #include <bitset>
 #include <limits>
 
+using Addr = uint32_t; // 20 bit address
+
 using Bit = bool;
 using Byte = uint8_t; 
 using Word = uint16_t;

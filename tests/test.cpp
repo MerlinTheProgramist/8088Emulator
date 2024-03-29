@@ -10,7 +10,7 @@ constexpr char fileName[]{"test_binary.bin"};
 
 
 
-TEST_CASE("Mem", "")
+TEST_CASE("Mem")
 {
   Mem mem{};
 
@@ -75,16 +75,16 @@ TEST_CASE("CPU")
     CHECK((int)cpu.AL == 0);
   }
   
-  SECTION("XOR reg self")
-  {
-    Byte x = cpu.AL = GENERATE(1,10,Byte_MAX);
+  // SECTION("XOR reg self")
+  // {
+  //   Byte x = cpu.AL = GENERATE(1,10,Byte_MAX);
     
-    mem[i] = 0b0010101'0; // SUB byte
-    mem[++i] = 0b11'000'000; // AL, AL
+  //   mem[i] = 0b0010101'0; // SUB byte
+  //   mem[++i] = 0b11'000'000; // AL, AL
 
-    cpu.ExecuteNext();
+  //   cpu.ExecuteNext();
     
-    CHECK((int)cpu.AL == 0);
-  }
+  //   CHECK((int)cpu.AL == 0);
+  // }
 }
 

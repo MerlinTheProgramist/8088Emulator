@@ -379,6 +379,7 @@ public:
         addr = mem[DI];
         break;
       case 0b110:
+        // Special case
         if(mod == 0b00) 
         {
           addr = FetchWord();
@@ -403,7 +404,7 @@ public:
     return addr;
   }
   
-  uint32_t calcAddr(std::bitset<2> mod, std::bitset<3> rm)
+  Addr calcAddr(std::bitset<2> mod, std::bitset<3> rm)
   {
     // segment register
     switch(rm.to_ulong())
@@ -659,9 +660,10 @@ public:
               }
               return;
             case 0b110: // DIV
-                DIV_ac_memORreg(op);
+                // DIV_ac_memORreg(op);
               return;
             case 0b111: //IDIV
+                // 
               return;
           }
         else
@@ -685,40 +687,40 @@ public:
         return;
       case 0b0011110:   CMP_ac_imm(op); 
         return;
-      case 0b0010001:   AND_reg_memORreg(op);
-        return;
-      case 0b0010000:   AND_mem_reg(op);
-        return;
-      case 0b0010010:   AND_ac_imm(op);
-        return;
-      case 0b0000101:   OR_reg_memORreg(op);
-        return;
-      case 0b0000100:   OR_mem_reg(op);
-        return;
-      case 0b0000110:   OR_ac_imm(op);
-        return;
-      case 0b1000000:   OR_memORreg_imm(op);
-        return;
+      // case 0b0010001:   AND_reg_memORreg(op);
+      //   return;
+      // case 0b0010000:   AND_mem_reg(op);
+      //   return;
+      // case 0b0010010:   AND_ac_imm(op);
+      //   return;
+      // case 0b0000101:   OR_reg_memORreg(op);
+      //   return;
+      // case 0b0000100:   OR_mem_reg(op);
+      //   return;
+      // case 0b0000110:   OR_ac_imm(op);
+      //   return;
+      // case 0b1000000:   OR_memORreg_imm(op);
+      //   return;
 
-      case 0b0011001:   XOR_reg_memORreg(op);
-        return;
-      case 0b0011000:   XOR_mem_reg(op);
-        return;
-      case 0b0011010:   XOR_ac_imm(op);
-        return;
-      case 0b1000010:   TEST_regORmem_reg(op);
-        return;
-      case 0b1010100:   TEST_ac_imm(op);
-        return;
-      case 0b1101000:   
-        {
+      // case 0b0011001:   XOR_reg_memORreg(op);
+      //   return;
+      // case 0b0011000:   XOR_mem_reg(op);
+      //   return;
+      // case 0b0011010:   XOR_ac_imm(op);
+      //   return;
+      // case 0b1000010:   TEST_regORmem_reg(op);
+      //   return;
+      // case 0b1010100:   TEST_ac_imm(op);
+      //   return;
+      // case 0b1101000:   
+      //   {
           
-          SHL_memOR1(op);
-        }
-        return;
-      case 0b1101001:   SHL_memORreg(op);
-        return;
-      }
+      //     SHL_memOR1(op);
+      //   }
+      //   return;
+      // case 0b1101001:   SHL_memORreg(op);
+      //   return;
+      // }
 
       // 8bit instructions
       switch(op){
@@ -774,19 +776,19 @@ public:
         }
       
       return;
-      case 0b11010101:
-      {
-        switch(arg)
-        {
-           case 0b00001010:
-            AAD(op);   
-        }  
-      }
-      case 0b10011000:
-        CBW(op);
-        return;
-      case 0b10011001:
-        CWD(op);
-        return;
-    }}
-};
+    //   case 0b11010101:
+    //   {
+    //     switch(arg)
+    //     {
+    //        case 0b00001010:
+    //         AAD(op);   
+    //     }  
+    //   }
+    //   case 0b10011000:
+    //     CBW(op);
+    //     return;
+    //   case 0b10011001:
+    //     CWD(op);
+    //     return;
+  }}
+}};

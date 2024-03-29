@@ -374,6 +374,24 @@ void CPU::CMP_ac_imm(Byte op){
     Flags.mark_SUB(AL, FetchByte());
 }
 
+void CPU::CMP_mem_imm(Byte op){
+  Byte arg = FetchWord();
+  Addr addr = calcAddr(arg>>6, arg);
+  if(op & WORD_MASK){
+    Word imm = mem.getWord(addr);
+    if(op & S_MASK)
+      Flags.mark_SUB(imm, FetchWord());
+    else
+      Flags.mark_SUB(imm, static_cast<Word>(FetchByte()));
+  }else{
+    Byte imm = mem.getByte(addr);
+    if(op & S_MASK)
+      Flags.mark_SUB(imm, FetchByte());
+    else
+      Flags.mark_SUB(imm, FetchByte());
+  }
+}
+
 void CPU::AAS(Byte){
   if((AL & NIB_MASK) > 9 || Flags.AF == 1)
   {
