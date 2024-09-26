@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_random.hpp>
+#include <catch2/internal/catch_decomposer.hpp>
 #include <istream>
 #include <string>
 #include "../emulator_lib/8088CPU.h"
@@ -73,6 +74,24 @@ TEST_CASE("CPU")
     cpu.ExecuteNext();
     
     CHECK((int)cpu.AL == 0);
+  }
+
+  SECTION("Byte order test"){
+    cpu.AH = 0xDE;
+    cpu.AL = 0xAD;
+
+    std::cout.setf(std::ios::hex);
+    CHECK(cpu.AX == 0xDEAD);
+
+    cpu.AX = 0;
+    cpu.AL = 0x69;
+    CHECK(cpu.AH == 0);
+    CHECK(cpu.AX == 0x69);
+
+    cpu.AX = 0;
+    cpu.AH = 0x69;
+    CHECK(cpu.AL == 0);
+    CHECK(cpu.AX == 0x6900);
   }
   
   // SECTION("XOR reg self")
